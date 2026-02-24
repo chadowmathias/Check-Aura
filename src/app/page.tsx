@@ -251,25 +251,31 @@ export default function Home() {
             </div>
 
             {/* Photo Container */}
-            <div className="relative flex-grow mb-6 rounded-3xl overflow-hidden shadow-2xl">
+            <div className="relative flex-grow mb-6 rounded-3xl overflow-hidden shadow-2xl group">
               <div className={`absolute -inset-4 opacity-50 blur-2xl animate-pulse ${getGlowColorClasses(result.color)}`} />
               <div className={`relative z-10 w-full h-full rounded-3xl border-2 overflow-hidden ${getBorderColorClasses(result.color)}`}>
                 {/* Photo Overlay */}
-                <div className={`absolute inset-0 z-20 opacity-30 mix-blend-overlay ${getGradientClasses(result.color)}`} />
+                <div className={`absolute inset-0 z-20 opacity-20 mix-blend-overlay ${getGradientClasses(result.color)}`} />
 
                 <img src={result.image} alt="User Aura" className="w-full h-full object-cover" />
 
-                <div className="absolute top-4 right-4 z-30 bg-black/60 backdrop-blur-md border border-white/20 px-4 py-2 rounded-full text-xs font-bold font-mono tracking-widest text-white shadow-lg">
-                  {result.score.toLocaleString()} PTS
+                {/* Central Score Display (Replacing text description) */}
+                <div className="absolute bottom-6 left-0 right-0 z-30 flex flex-col items-center justify-center gap-2">
+                   <div className="bg-black/40 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 shadow-xl">
+                      <span className="text-4xl font-black tracking-tighter text-white drop-shadow-[0_0_15px_rgba(255,255,255,0.5)]">
+                        {result.score.toLocaleString()}
+                      </span>
+                      <span className="text-[10px] font-mono uppercase tracking-[0.4em] text-zinc-300 ml-2">PTS</span>
+                   </div>
                 </div>
               </div>
             </div>
 
             {/* Aura Color Badge */}
-            <div className="relative z-10 text-center mb-4">
-              <div className="inline-block px-6 py-3 rounded-full bg-white/10 border border-white/20 backdrop-blur-md shadow-xl transform hover:scale-105 transition-transform duration-300">
-                <span className="text-xl font-black uppercase tracking-widest text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
-                  Aura {result.color === 'purple' ? 'Violette' : result.color === 'red' ? 'Rouge' : result.color === 'blue' ? 'Bleue' : result.color === 'gold' ? 'Dorée' : result.color === 'neon-green' ? 'Néon Green' : 'Sombre'}
+            <div className="relative z-10 text-center mb-2">
+              <div className="inline-block px-8 py-4 rounded-full bg-white/5 border border-white/10 backdrop-blur-md shadow-2xl transform hover:scale-105 transition-transform duration-300">
+                <span className={`text-2xl font-black uppercase tracking-widest bg-clip-text text-transparent bg-gradient-to-r ${getAuraColorClasses(result.color).replace('from-', 'from-white via-white to-')}`}>
+                  {result.color === 'purple' ? 'Aura Violette' : result.color === 'red' ? 'Aura Rouge' : result.color === 'blue' ? 'Aura Bleue' : result.color === 'gold' ? 'Aura Dorée' : result.color === 'neon-green' ? 'Aura Toxic' : 'Aura Sombre'}
                 </span>
               </div>
             </div>
