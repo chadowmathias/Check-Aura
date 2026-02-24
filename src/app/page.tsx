@@ -12,7 +12,6 @@ export default function Home() {
   const [result, setResult] = useState<null | {
     color: string;
     score: number;
-    description: string;
     image: string;
   }>(null);
   const [error, setError] = useState<string | null>(null);
@@ -260,22 +259,19 @@ export default function Home() {
 
                 <img src={result.image} alt="User Aura" className="w-full h-full object-cover" />
 
-                <div className="absolute top-4 right-4 z-30 bg-black/60 backdrop-blur-md border border-white/20 px-3 py-1 rounded-full text-[10px] font-mono tracking-widest text-white">
+                <div className="absolute top-4 right-4 z-30 bg-black/60 backdrop-blur-md border border-white/20 px-4 py-2 rounded-full text-xs font-bold font-mono tracking-widest text-white shadow-lg">
                   {result.score.toLocaleString()} PTS
                 </div>
               </div>
             </div>
 
-            {/* Description Card */}
-            <div className="relative z-10 text-center space-y-4">
-              <div className="inline-block px-4 py-1 rounded-full bg-white/5 border border-white/10">
-                <span className="text-sm font-bold uppercase tracking-widest text-zinc-200">
+            {/* Aura Color Badge */}
+            <div className="relative z-10 text-center mb-4">
+              <div className="inline-block px-6 py-3 rounded-full bg-white/10 border border-white/20 backdrop-blur-md shadow-xl transform hover:scale-105 transition-transform duration-300">
+                <span className="text-xl font-black uppercase tracking-widest text-white drop-shadow-[0_2px_10px_rgba(255,255,255,0.3)]">
                   Aura {result.color === 'purple' ? 'Violette' : result.color === 'red' ? 'Rouge' : result.color === 'blue' ? 'Bleue' : result.color === 'gold' ? 'Dorée' : result.color === 'neon-green' ? 'Néon Green' : 'Sombre'}
                 </span>
               </div>
-              <p className="text-zinc-200 text-lg italic leading-tight px-2">
-                "{result.description}"
-              </p>
             </div>
 
             {/* Watermark */}

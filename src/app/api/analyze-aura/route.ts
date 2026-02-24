@@ -37,10 +37,9 @@ export async function POST(req: NextRequest) {
         const prompt = `Tu es une voyante Gen-Z sarcastique. Analyse cette photo. Détermine l'énergie de la personne en fonction de son expression, ses vêtements et la lumière. 
     Prends impérativement en compte l'arrière-plan et le décor autour de la personne pour juger son aura et faire tes vannes.
     
-    Renvoie UNIQUEMENT un objet JSON avec 3 clés :
+    Renvoie UNIQUEMENT un objet JSON avec 2 clés :
     - 'color': choisis une couleur d'aura parmi ['purple', 'red', 'blue', 'gold', 'dark', 'neon-green'].
-    - 'score': un nombre entier dramatique entre -5000 et +99999 (les points d'aura).
-    - 'description': une phrase courte (max 2 phrases) très sarcastique, drôle, utilisant de l'argot internet.`;
+    - 'score': un nombre entier dramatique entre -5000 et +99999 (les points d'aura).`;
 
         console.log("--- CONNEXION À L'ÉTHER (v0.1.2) ---");
         const result = await model.generateContent([prompt, imagePart]);
