@@ -11,3 +11,5 @@
 - **IA** : L'IA analyse maintenant le décor (chambre, miroir, etc.) pour plus de sarcasme.
 - **Rendu** : Utilisation d'effets de glow/aura CSS sur la photo originale au lieu d'un détourage.
 - **ÉTAPE 4** : Développement de la carte de partage (9:16) et intégration de `html-to-image`. simulation du modèle freemium.
+- **Déploiement** : Code complet poussé sur GitHub (repository origin).
+- **Marque Blanche** : Suppression des mentions techniques (Gemini, OpenAI), erreurs mystiques et versioning (`AuraCheck v0.1.0`).

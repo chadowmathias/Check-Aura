@@ -29,10 +29,13 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
 
-    const formData = new FormData();
-    formData.append("file", file);
-
     try {
+      // 1. Compression de l'image (max 800px) pour performance et stabilité
+      const compressedFile = await compressImage(file);
+
+      const formData = new FormData();
+      formData.append("file", compressedFile);
+
       const response = await fetch("/api/analyze-aura", {
         method: "POST",
         body: formData,
@@ -46,10 +49,44 @@ export default function Home() {
       const data = await response.json();
       setResult(data);
     } catch (err: any) {
-      setError(err.message || "Les esprits sont brouillés...");
+      console.error("Frontend analyze error:", err);
+      setError(err.message || "Les énergies cosmiques sont instables en ce moment. Réessaie dans un instant ✨");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const compressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 800;
+          const scaleSize = MAX_WIDTH / img.width;
+          canvas.width = MAX_WIDTH;
+          canvas.height = img.height * scaleSize;
+
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+          ctx?.canvas.toBlob((blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name, {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              resolve(file); // Fallback
+            }
+          }, 'image/jpeg', 0.85);
+        };
+      };
+    });
   };
 
   const downloadImage = async () => {
@@ -285,7 +322,7 @@ export default function Home() {
           transition={{ delay: 1 }}
           className="fixed bottom-8 text-[10px] tracking-[0.3em] font-mono text-zinc-500 uppercase z-0"
         >
-          Powered by Gemini 1.5 Flash
+          AuraCheck v0.1.0
         </motion.div>
       )}
     </div>
