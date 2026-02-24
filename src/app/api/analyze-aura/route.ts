@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Initialisation du moteur interne (Revert 1.5 pour bypass quota 2.0)
+// Initialisation du moteur interne (v0.1.4)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-// On tente gemini-1.5-flash avec la nouvelle syntaxe propre
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export async function POST(req: NextRequest) {
@@ -23,7 +22,7 @@ export async function POST(req: NextRequest) {
         const buffer = Buffer.from(bytes);
         const base64Image = buffer.toString("base64");
 
-        // 2. NETTOYAGE CRUCIAL (Strict fix for 404/429)
+        // 2. Nettoyage Base64 strict
         const base64Data = base64Image.replace(/^data:image\/(png|jpeg|jpg|webp);base64,/, "");
 
         // 3. Payload
@@ -34,15 +33,16 @@ export async function POST(req: NextRequest) {
             }
         };
 
-        const prompt = `Tu es une voyante Gen-Z sarcastique. Analyse cette photo. Détermine l'énergie de la personne en fonction de son expression, ses vêtements et la lumière. 
-    Prends impérativement en compte l'arrière-plan et le décor autour de la personne pour juger son aura et faire tes vannes.
+        const prompt = `Tu es une voyante Gen-Z sarcastique. Analyse cette photo d'utilisateur. 
+    Tu dois juger son 'aura' en fonction de sa pose, son expression et son décor.
     
-    Renvoie UNIQUEMENT un objet JSON avec 3 clés :
-    - 'color': choisis une couleur d'aura parmi ['purple', 'red', 'blue', 'gold', 'dark', 'neon-green'].
-    - 'score': un nombre entier dramatique entre -5000 et +99999 (les points d'aura).
-    - 'description': une phrase courte (max 2 phrases) très sarcastique, drôle, utilisant de l'argot internet.`;
+    Renvoie UNIQUEMENT un objet JSON avec 2 clés :
+    - 'color': une couleur parmi ['purple', 'red', 'blue', 'gold', 'dark', 'neon-green'].
+    - 'score': un nombre entier entre -10000 et +10000 (points d'aura).
+    
+    NE GÉNÈRE AUCUN TEXTE, UNIQUEMENT LE JSON.`;
 
-        console.log("--- CONNEXION À L'ÉTHER (v0.1.2) ---");
+        console.log("--- SCAN VIBRATOIRE v0.1.4 ---");
         const result = await model.generateContent([prompt, imagePart]);
 
         const response = await result.response;
@@ -70,10 +70,9 @@ export async function POST(req: NextRequest) {
         console.error("--- ERREUR CRITIQUE ---");
         console.error(error);
 
-        // Gestion spécifique du quota
         if (error?.status === 429 || error?.message?.includes("quota")) {
             return NextResponse.json(
-                { error: "Le cosmos est saturé de demandes. Patiente 30 secondes avant de retenter le scan. 🌌" },
+                { error: "Le cosmos est saturé. Patiente 30 secondes... 🌌" },
                 { status: 429 }
             );
         }
