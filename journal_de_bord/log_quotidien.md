@@ -13,3 +13,4 @@
 - **ÉTAPE 4** : Développement de la carte de partage (9:16) et intégration de `html-to-image`. simulation du modèle freemium.
 - **Déploiement** : Code complet poussé sur GitHub (repository origin).
 - **Marque Blanche** : Suppression des mentions techniques (Gemini, OpenAI), erreurs mystiques et versioning (`AuraCheck v0.1.0`).
+- **REFONTE v0.1.4** : Correction bug "infinite loop" API, pivot phrase-logic vers le frontend, prompt IA simplifié (vitesse), et UI résultat overhaulée (Score GÉANT, Image entière).
