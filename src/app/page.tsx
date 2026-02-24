@@ -272,7 +272,7 @@ export default function Home() {
           transition={{ delay: 1 }}
           className="fixed bottom-8 text-[10px] tracking-[0.3em] font-mono text-zinc-500 uppercase z-0"
         >
-          AuraCheck v0.1.5
+          AuraCheck v0.1.6
         </motion.div>
       )}
     </div>
