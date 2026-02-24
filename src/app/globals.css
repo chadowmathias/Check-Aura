@@ -1,26 +1,41 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #050505;
+  --foreground: #fafafa;
+  --aura-purple: #7c3aed;
+  --aura-blue: #2563eb;
+  --aura-pink: #db2777;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-aura-purple: var(--aura-purple);
+  --color-aura-blue: var(--aura-blue);
+  --color-aura-pink: var(--aura-pink);
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+}
+
+@layer utilities {
+  .text-glow {
+    text-shadow: 0 0 10px rgba(124, 58, 237, 0.5), 0 0 20px rgba(124, 58, 237, 0.3);
+  }
+  
+  .bg-glow {
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.2);
+  }
+
+  .aura-gradient {
+    background: linear-gradient(135deg, #7c3aed, #db2777, #2563eb);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
 }
