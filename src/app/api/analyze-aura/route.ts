@@ -9,7 +9,10 @@ const MODELS = [
   "gemini-1.5-flash-latest",
   "gemini-1.5-pro",
   "gemini-1.5-pro-latest",
-  "gemini-2.0-flash-exp"
+  "gemini-2.0-flash-exp",
+  "gemini-1.5-flash-8b",
+  "gemini-pro",
+  "gemini-1.0-pro"
 ];
 
 export async function POST(req: NextRequest) {
@@ -68,15 +71,30 @@ export async function POST(req: NextRequest) {
                 errorDetails = error;
 
                 // Continue to next model on 404 or other errors
-                // Note: For 429 (quota), we might want to fail fast, but trying another model (e.g. Pro vs Flash) might work if quotas are separate?
-                // Usually quotas are per project, so 429 might affect all models.
-                // However, let's stick to the user's observed behavior of retrying.
                 continue;
             }
         }
 
         if (!result) {
             console.error("Tous les modèles ont échoué.");
+
+            // Diagnostic: List available models to help debug why the configured models are failing
+            try {
+                const apiKey = process.env.GEMINI_API_KEY;
+                if (apiKey) {
+                    const listModelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+                    const response = await fetch(listModelsUrl);
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log("Modèles disponibles pour cette clé API:", JSON.stringify(data, null, 2));
+                    } else {
+                        console.error("Impossible de lister les modèles via API REST:", response.status, response.statusText);
+                    }
+                }
+            } catch (listError) {
+                console.error("Erreur lors de la récupération de la liste des modèles:", listError);
+            }
+
             throw errorDetails || new Error("Tous les modèles sont inaccessibles.");
         }
 
