@@ -41,15 +41,26 @@ export default function Home() {
     setIsLoading(true);
     setError(null);
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+
     try {
-      const compressedFile = await compressImage(file);
+      // Timeout for compression: 5 seconds
+      const compressedFile = await Promise.race([
+        compressImage(file),
+        new Promise<File>((_, reject) => setTimeout(() => reject(new Error("La compression de l'image a pris trop de temps.")), 5000))
+      ]);
+
       const formData = new FormData();
       formData.append("file", compressedFile);
 
       const response = await fetch("/api/analyze-aura", {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -60,14 +71,19 @@ export default function Home() {
       setResult(data);
     } catch (err: any) {
       console.error("Frontend analyze error:", err);
-      setError(err.message || "Les énergies cosmiques sont instables. ✨");
+      if (err.name === 'AbortError') {
+        setError("Le rituel prend trop de temps. Vérifie ta connexion.");
+      } else {
+        setError(err.message || "Les énergies cosmiques sont instables. ✨");
+      }
     } finally {
+      clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
 
   const compressImage = (file: File): Promise<File> => {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = (event) => {
@@ -90,7 +106,9 @@ export default function Home() {
             }
           }, 'image/jpeg', 0.85);
         };
+        img.onerror = () => reject(new Error("Impossible de charger l'image."));
       };
+      reader.onerror = () => reject(new Error("Erreur de lecture du fichier."));
     });
   };
 
