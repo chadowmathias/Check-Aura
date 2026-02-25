@@ -7,7 +7,14 @@ if (!apiKey) {
     console.error("ERREUR: GEMINI_API_KEY manquante.");
 }
 const genAI = new GoogleGenerativeAI(apiKey || "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+const MODEL_NAMES = [
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-latest",
+    "gemini-1.5-pro",
+    "gemini-1.5-pro-latest",
+    "gemini-2.0-flash-exp"
+];
 
 export async function POST(req: NextRequest) {
     try {
@@ -52,11 +59,36 @@ export async function POST(req: NextRequest) {
 
         console.log("--- SCAN VIBRATOIRE v0.1.4 ---");
 
-        // Timeout interne de 15s pour l'API Gemini
-        const result = await Promise.race([
-            model.generateContent([prompt, imagePart]),
-            new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Timeout Gemini API")), 15000))
-        ]);
+        let result = null;
+        let lastError = null;
+
+        // Boucle de tentative sur les modèles
+        for (const modelName of MODEL_NAMES) {
+            try {
+                console.log(`Tentative avec le modèle: ${modelName}`);
+                const model = genAI.getGenerativeModel({ model: modelName });
+
+                // Timeout interne de 15s pour l'API Gemini
+                const currentResult: any = await Promise.race([
+                    model.generateContent([prompt, imagePart]),
+                    new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Timeout Gemini API")), 15000))
+                ]);
+
+                if (currentResult && currentResult.response) {
+                    result = currentResult;
+                    console.log(`Succès avec le modèle: ${modelName}`);
+                    break; // Succès, on sort de la boucle
+                }
+            } catch (error: any) {
+                console.warn(`Échec avec le modèle ${modelName}:`, error.message);
+                lastError = error;
+            }
+        }
+
+        if (!result) {
+            console.error("Tous les modèles ont échoué.");
+            throw lastError || new Error("Impossible de contacter les esprits (Modèles épuisés).");
+        }
 
         const response = await result.response;
         let responseText = response.text();
