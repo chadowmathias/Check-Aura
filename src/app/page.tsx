@@ -97,15 +97,23 @@ export default function Home() {
   const downloadImage = async () => {
     if (!cardRef.current) return;
     try {
+      // Small delay to ensure styles are applied
       await new Promise(resolve => setTimeout(resolve, 300));
-      const dataUrl = await toPng(cardRef.current, { cacheBust: true, backgroundColor: '#09090b', pixelRatio: 2 });
+      const dataUrl = await toPng(cardRef.current, {
+        cacheBust: true,
+        backgroundColor: '#09090b',
+        pixelRatio: 2,
+        style: {
+          transform: 'scale(1)',
+        }
+      });
       const link = document.createElement('a');
       link.download = `aura-check-${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
       console.error('Erreur téléch.:', err);
-      setError("Erreur technique de génération.");
+      setError("Erreur technique de génération de l'image.");
     }
   };
 
@@ -137,7 +145,7 @@ export default function Home() {
     <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8 text-center bg-zinc-950 relative overflow-x-hidden">
       <PremiumModal isOpen={isPremiumModalOpen} onClose={() => setIsPremiumModalOpen(false)} />
 
-      {/* Decorative Glows (Restored) */}
+      {/* Decorative Glows */}
       <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-aura-purple/10 blur-[120px] rounded-full pointer-events-none z-0" />
       <div className="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-aura-blue/10 blur-[120px] rounded-full pointer-events-none z-0" />
 
@@ -165,14 +173,12 @@ export default function Home() {
               <input type="file" accept="image/*" capture="user" className="hidden" onChange={handleFileChange} disabled={isLoading} />
 
               <div className="relative w-52 h-52 rounded-full flex items-center justify-center transition-all duration-700">
-                {/* Breathing Halo (Restored) */}
                 <motion.div
                   className="absolute inset-[-10px] rounded-full border-2 border-aura-purple/20"
                   animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.6, 0.3] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 />
 
-                {/* Main Button Body */}
                 <div className="absolute inset-0 rounded-full bg-zinc-900 border border-white/10 group-hover:border-aura-purple/50 transition-all duration-500 shadow-[0_0_50px_rgba(124,58,237,0.15)] bg-glow overflow-hidden">
                   <motion.div
                     className="absolute inset-0 bg-aura-purple/10 opacity-0 group-hover:opacity-100 transition-opacity"
@@ -193,7 +199,7 @@ export default function Home() {
 
             <label className="cursor-pointer mt-12 inline-flex items-center gap-3 px-8 py-4 rounded-full bg-white/5 border border-white/10 text-xs font-black tracking-widest text-zinc-400 hover:text-white hover:bg-white/10 transition-all hover:border-white/20">
               <Upload className="w-4 h-4" />
-              <span>UPLOAD</span>
+              <span>UPLOAD PHOTO</span>
               <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} disabled={isLoading} />
             </label>
           </motion.div>
@@ -204,12 +210,19 @@ export default function Home() {
           <div ref={cardRef} className="relative w-[340px] aspect-[9/16] rounded-[3rem] bg-zinc-950 overflow-hidden flex flex-col p-8 border border-white/5 shadow-2xl">
             <div className={`absolute top-0 left-0 w-full h-1/2 opacity-20 bg-gradient-to-b ${getAuraColorClasses(result.color)}`} />
 
+            {/* Anti-Capture Watermark (New) */}
+            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none overflow-hidden">
+              <span className="text-white/20 text-4xl font-black uppercase tracking-widest rotate-[-45deg] whitespace-nowrap">
+                AuraCheck.app AuraCheck.app AuraCheck.app
+              </span>
+            </div>
+
             <div className="relative z-10 mb-8 flex flex-col items-center gap-1">
               <span className="text-[8px] tracking-[0.5em] font-mono text-zinc-500 uppercase">Aura Assessment</span>
               <h2 className="text-xl font-black aura-gradient tracking-tighter">AURA CHECK</h2>
             </div>
 
-            {/* GIGANTIC SCORE (v0.1.4 Logic Kept) */}
+            {/* GIGANTIC SCORE */}
             <div className="relative z-10 flex flex-col items-center justify-center mb-8">
               <motion.span
                 initial={{ scale: 0.5, opacity: 0 }}
@@ -222,38 +235,53 @@ export default function Home() {
               <span className="text-[10px] tracking-[0.5em] font-mono text-zinc-500 uppercase mt-2">Points d'Aura</span>
             </div>
 
-            {/* PHOTO (Full Contain - v0.1.4 Logic Kept) */}
+            {/* PHOTO */}
             <div className="relative flex-grow mb-8 rounded-3xl overflow-hidden bg-zinc-900/50 border border-white/10 group">
               <img src={result.image} alt="User" className="w-full h-full object-contain relative z-10" />
               <div className="absolute inset-0 blur-3xl opacity-20 z-0" style={{ backgroundColor: getColorHex(result.color) }} />
             </div>
 
-            {/* PHRASE (v0.1.4 Logic Kept) */}
+            {/* PHRASE */}
             <div className="relative z-10 px-4">
               <p className="text-white text-xl font-bold leading-tight drop-shadow-md italic">
                 "{getAuraPhrase(result.score)}"
               </p>
               <div className="mt-4 inline-block px-3 py-1 rounded-full border border-white/10 bg-white/5 backdrop-blur-sm">
                 <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: getColorHex(result.color) }}>
-                  Aura {result.color}
+                  Aura {result.color === 'neon-green' ? 'Néon Green' : result.color}
                 </span>
               </div>
             </div>
 
             <div className="relative z-10 mt-auto pt-6 opacity-30 text-center">
-              <p className="text-[8px] tracking-[0.6em] font-mono text-white uppercase">AuraCheck.app v0.1.5</p>
+              <p className="text-[8px] tracking-[0.6em] font-mono text-white uppercase">AuraCheck.app v0.1.7</p>
             </div>
           </div>
 
-          {/* ACTIONS */}
+          {/* ACTIONS (Updated) */}
           <div className="mt-8 w-full max-w-[340px] flex flex-col gap-3">
-            <button onClick={downloadImage} className="w-full flex items-center justify-center gap-3 py-5 bg-white text-black font-black rounded-3xl hover:bg-zinc-200 transition-all uppercase tracking-tighter shadow-xl">
-              <Download className="w-5 h-5" /> Partager ma Story
+            <button
+              onClick={downloadImage}
+              className="w-full flex items-center justify-center gap-3 py-5 bg-white text-black font-black rounded-3xl hover:bg-zinc-200 transition-all uppercase tracking-tighter shadow-xl"
+            >
+              <Download className="w-5 h-5" />
+              <span>📥 Télécharger (Gratuit)</span>
             </button>
-            <button onClick={() => setIsPremiumModalOpen(true)} className="w-full flex items-center justify-center gap-3 py-5 bg-zinc-900 border border-yellow-500/20 text-yellow-500 font-bold rounded-3xl hover:bg-zinc-800 transition-all uppercase tracking-tighter text-sm">
-              <Crown className="w-5 h-5" /> Débloquer HD
+
+            <button
+              onClick={() => setIsPremiumModalOpen(true)}
+              className="w-full flex items-center justify-center gap-3 py-5 bg-zinc-900 border-2 border-yellow-500/50 text-yellow-500 font-bold rounded-3xl hover:bg-zinc-800 transition-all uppercase tracking-tighter text-sm shadow-[0_0_20px_rgba(234,179,8,0.1)] group"
+            >
+              <Crown className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              <span>✨ Enlever filigrane & HD</span>
             </button>
-            <button onClick={() => setResult(null)} className="py-4 text-zinc-500 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors">Retour à l'accueil</button>
+
+            <button
+              onClick={() => setResult(null)}
+              className="py-4 text-zinc-500 text-xs font-bold uppercase tracking-widest hover:text-white transition-colors"
+            >
+              Refaire le scan
+            </button>
           </div>
         </motion.div>
       )}
@@ -264,7 +292,6 @@ export default function Home() {
         </div>
       )}
 
-      {/* Footer Branding (UI restored) */}
       {!result && (
         <motion.div
           initial={{ opacity: 0 }}
@@ -272,7 +299,7 @@ export default function Home() {
           transition={{ delay: 1 }}
           className="fixed bottom-8 text-[10px] tracking-[0.3em] font-mono text-zinc-500 uppercase z-0"
         >
-          AuraCheck v0.1.6
+          AuraCheck v0.1.7
         </motion.div>
       )}
     </div>

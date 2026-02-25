@@ -48,7 +48,10 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
                             </p>
 
                             <div className="w-full space-y-3">
-                                <button className="w-full flex items-center justify-between px-6 py-4 bg-yellow-500 text-black font-bold rounded-2xl hover:bg-yellow-400 transition-all group">
+                                <button 
+                                    onClick={() => alert("Chargement de la publicité... (Bientôt disponible)")}
+                                    className="w-full flex items-center justify-between px-6 py-4 bg-yellow-500 text-black font-bold rounded-2xl hover:bg-yellow-400 transition-all group"
+                                >
                                     <div className="flex items-center gap-3">
                                         <Play className="w-5 h-5 fill-current" />
                                         <span>Regarder une pub</span>
@@ -56,7 +59,10 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
                                     <span className="text-[10px] uppercase tracking-widest opacity-60">Gratuit</span>
                                 </button>
 
-                                <button className="w-full flex items-center justify-between px-6 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all">
+                                <button 
+                                    onClick={() => alert("Redirection vers Stripe... (Bientôt disponible)")}
+                                    className="w-full flex items-center justify-between px-6 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all"
+                                >
                                     <div className="flex items-center gap-3">
                                         <CreditCard className="w-5 h-5" />
                                         <span>Payer une fois</span>
