@@ -1,11 +1,51 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Initialisation du moteur interne (Revert 1.5 pour bypass quota 2.0)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-// Utilisation explicite de 'gemini-1.5-flash' (standard) et FORCAGE DE L'API V1
-// pour éviter les erreurs 404 sur les endpoints v1beta instables ou restreints
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }, { apiVersion: "v1" });
+const API_KEY = process.env.GEMINI_API_KEY || "";
+const genAI = new GoogleGenerativeAI(API_KEY);
+
+// Liste des modèles à essayer par ordre de préférence (Flash > Pro > Vision)
+const MODELS_TO_TRY = [
+    "gemini-1.5-flash",        // Standard current
+    "gemini-1.5-flash-latest", // Latest alias
+    "gemini-1.5-flash-001",    // Specific version
+    "gemini-1.5-flash-002",    // Newer specific version
+    "gemini-1.5-pro",          // Fallback to Pro
+    "gemini-1.5-pro-latest",   // Pro alias
+    "gemini-pro-vision"        // Legacy fallback (might be deprecated but worth a shot)
+];
+
+async function generateWithFallback(prompt: string, imagePart: any) {
+    let lastError = null;
+
+    for (const modelName of MODELS_TO_TRY) {
+        try {
+            console.log(` Tentative avec le modèle : ${modelName}`);
+            // On ne force pas la version API ici, on laisse le SDK gérer (défaut v1 ou v1beta selon le modèle)
+            const model = genAI.getGenerativeModel({ model: modelName });
+
+            const result = await model.generateContent([prompt, imagePart]);
+            const response = await result.response;
+            const text = response.text();
+
+            if (text) {
+                console.log(` SUCCÈS avec ${modelName}`);
+                return text;
+            }
+        } catch (error: any) {
+            console.warn(` Échec avec ${modelName}: ${error.message}`);
+            lastError = error;
+            // On continue vers le prochain modèle si c'est une 404 ou 503
+            if (error.status === 404 || error.message?.includes("not found") || error.status === 503) {
+                continue;
+            }
+            // Pour les autres erreurs (ex: API key invalid), on arrête peut-être ?
+            // Dans le doute, on continue la boucle de fallback pour être robuste.
+        }
+    }
+
+    throw lastError || new Error("Tous les modèles ont échoué.");
+}
 
 export async function POST(req: NextRequest) {
     try {
@@ -43,10 +83,10 @@ export async function POST(req: NextRequest) {
     - 'score': un nombre entier dramatique entre -5000 et +99999 (les points d'aura).`;
 
         console.log("--- CONNEXION À L'ÉTHER (v0.1.2) ---");
-        const result = await model.generateContent([prompt, imagePart]);
 
-        const response = await result.response;
-        let responseText = response.text();
+        // Appel avec mécanisme de fallback
+        let responseText = await generateWithFallback(prompt, imagePart);
+
         console.log("LOG INTERNE (BRUT):", responseText);
 
         // 5. Nettoyage JSON
