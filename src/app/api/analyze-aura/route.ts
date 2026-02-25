@@ -3,7 +3,14 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialisation du moteur interne (v0.1.4)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+
+const MODELS = [
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-latest",
+  "gemini-1.5-pro",
+  "gemini-1.5-pro-latest",
+  "gemini-2.0-flash-exp"
+];
 
 export async function POST(req: NextRequest) {
     try {
@@ -43,7 +50,35 @@ export async function POST(req: NextRequest) {
     NE GÉNÈRE AUCUN TEXTE, UNIQUEMENT LE JSON.`;
 
         console.log("--- SCAN VIBRATOIRE v0.1.4 ---");
-        const result = await model.generateContent([prompt, imagePart]);
+
+        let result = null;
+        let errorDetails = null;
+
+        // Fallback strategy loop
+        for (const modelName of MODELS) {
+            try {
+                console.log(`Tentative avec le modèle: ${modelName}`);
+                const model = genAI.getGenerativeModel({ model: modelName });
+                result = await model.generateContent([prompt, imagePart]);
+
+                // If successful, break the loop
+                break;
+            } catch (error: any) {
+                console.error(`Échec avec le modèle ${modelName}:`, error.message);
+                errorDetails = error;
+
+                // Continue to next model on 404 or other errors
+                // Note: For 429 (quota), we might want to fail fast, but trying another model (e.g. Pro vs Flash) might work if quotas are separate?
+                // Usually quotas are per project, so 429 might affect all models.
+                // However, let's stick to the user's observed behavior of retrying.
+                continue;
+            }
+        }
+
+        if (!result) {
+            console.error("Tous les modèles ont échoué.");
+            throw errorDetails || new Error("Tous les modèles sont inaccessibles.");
+        }
 
         const response = await result.response;
         let responseText = response.text();
