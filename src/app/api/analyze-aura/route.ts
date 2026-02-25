@@ -2,11 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialisation du moteur interne (v0.1.4)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+    console.error("ERREUR: GEMINI_API_KEY manquante.");
+}
+const genAI = new GoogleGenerativeAI(apiKey || "");
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 export async function POST(req: NextRequest) {
     try {
+        if (!process.env.GEMINI_API_KEY) {
+            throw new Error("Clé API Gemini non configurée.");
+        }
+
         const data = await req.formData();
         const file: File | null = data.get("file") as unknown as File;
 
@@ -43,7 +51,12 @@ export async function POST(req: NextRequest) {
     NE GÉNÈRE AUCUN TEXTE, UNIQUEMENT LE JSON.`;
 
         console.log("--- SCAN VIBRATOIRE v0.1.4 ---");
-        const result = await model.generateContent([prompt, imagePart]);
+
+        // Timeout interne de 15s pour l'API Gemini
+        const result = await Promise.race([
+            model.generateContent([prompt, imagePart]),
+            new Promise<any>((_, reject) => setTimeout(() => reject(new Error("Timeout Gemini API")), 15000))
+        ]);
 
         const response = await result.response;
         let responseText = response.text();
@@ -74,6 +87,20 @@ export async function POST(req: NextRequest) {
             return NextResponse.json(
                 { error: "Le cosmos est saturé. Patiente 30 secondes... 🌌" },
                 { status: 429 }
+            );
+        }
+
+        if (error?.status === 404 || error?.message?.includes("not found")) {
+             return NextResponse.json(
+                { error: "Le modèle cosmique est introuvable. Vérifie ta clé API (Gemini 1.5 Flash). 🔮" },
+                { status: 404 }
+            );
+        }
+
+        if (error?.message === "Timeout Gemini API") {
+             return NextResponse.json(
+                { error: "Les esprits mettent trop de temps à répondre. Réessaie. ⏳" },
+                { status: 504 }
             );
         }
 
