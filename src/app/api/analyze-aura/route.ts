@@ -4,47 +4,62 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 const API_KEY = process.env.GEMINI_API_KEY || "";
 const genAI = new GoogleGenerativeAI(API_KEY);
 
-// Liste des modèles à essayer par ordre de préférence (Flash > Pro > Vision)
-const MODELS_TO_TRY = [
-    "gemini-1.5-flash",        // Standard current
-    "gemini-1.5-flash-latest", // Latest alias
-    "gemini-1.5-flash-001",    // Specific version
-    "gemini-1.5-flash-002",    // Newer specific version
-    "gemini-1.5-pro",          // Fallback to Pro
-    "gemini-1.5-pro-latest",   // Pro alias
-    "gemini-pro-vision"        // Legacy fallback (might be deprecated but worth a shot)
+// Liste exhaustive des modèles vision à essayer
+// gemini-1.5-flash est la recommandation actuelle (GA)
+// gemini-pro-vision est l'ancien modèle (Legacy)
+const MODELS = [
+    "gemini-1.5-flash",
+    "gemini-1.5-flash-001",
+    "gemini-1.5-flash-002",
+    "gemini-1.5-flash-8b",
+    "gemini-1.5-pro",
+    "gemini-1.5-pro-001",
+    "gemini-1.5-pro-002",
+    "gemini-pro-vision"
+];
+
+// Liste des versions d'API à tester pour chaque modèle
+const API_VERSIONS = [
+    undefined, // Laisse le SDK choisir (souvent v1beta par défaut pour certains modèles)
+    "v1",      // Version stable
+    "v1beta"   // Version beta (souvent requise pour les derniers modèles ou fonctionnalités)
 ];
 
 async function generateWithFallback(prompt: string, imagePart: any) {
     let lastError = null;
+    let attempts = 0;
 
-    for (const modelName of MODELS_TO_TRY) {
-        try {
-            console.log(` Tentative avec le modèle : ${modelName}`);
-            // On ne force pas la version API ici, on laisse le SDK gérer (défaut v1 ou v1beta selon le modèle)
-            const model = genAI.getGenerativeModel({ model: modelName });
+    for (const modelName of MODELS) {
+        for (const version of API_VERSIONS) {
+            attempts++;
+            try {
+                const versionName = version || "SDK_DEFAULT";
+                console.log(`[Tentative ${attempts}] Modèle: ${modelName} (API: ${versionName})`);
 
-            const result = await model.generateContent([prompt, imagePart]);
-            const response = await result.response;
-            const text = response.text();
+                const modelOptions = { model: modelName };
+                const requestOptions = version ? { apiVersion: version } : undefined;
 
-            if (text) {
-                console.log(` SUCCÈS avec ${modelName}`);
-                return text;
+                const model = genAI.getGenerativeModel(modelOptions, requestOptions);
+
+                const result = await model.generateContent([prompt, imagePart]);
+                const response = await result.response;
+                const text = response.text();
+
+                if (text) {
+                    console.log(`>>> SUCCÈS avec ${modelName} (API: ${versionName})`);
+                    return text;
+                }
+            } catch (error: any) {
+                const errorMsg = error.message || "Unknown error";
+                console.warn(`!!! Échec avec ${modelName} (${version || "SDK_DEFAULT"}): ${errorMsg}`);
+                lastError = error;
+                // Continue to next combination regardless of error type (404, 503, 400, etc.)
+                // car on veut absolument trouver une combinaison qui marche.
             }
-        } catch (error: any) {
-            console.warn(` Échec avec ${modelName}: ${error.message}`);
-            lastError = error;
-            // On continue vers le prochain modèle si c'est une 404 ou 503
-            if (error.status === 404 || error.message?.includes("not found") || error.status === 503) {
-                continue;
-            }
-            // Pour les autres erreurs (ex: API key invalid), on arrête peut-être ?
-            // Dans le doute, on continue la boucle de fallback pour être robuste.
         }
     }
 
-    throw lastError || new Error("Tous les modèles ont échoué.");
+    throw lastError || new Error("Tous les modèles et versions ont échoué.");
 }
 
 export async function POST(req: NextRequest) {
@@ -82,9 +97,9 @@ export async function POST(req: NextRequest) {
     - 'color': choisis une couleur d'aura parmi ['purple', 'red', 'blue', 'gold', 'dark', 'neon-green'].
     - 'score': un nombre entier dramatique entre -5000 et +99999 (les points d'aura).`;
 
-        console.log("--- CONNEXION À L'ÉTHER (v0.1.2) ---");
+        console.log("--- CONNEXION À L'ÉTHER (v0.1.2 - Fallback Exhaustif) ---");
 
-        // Appel avec mécanisme de fallback
+        // Appel avec mécanisme de fallback exhaustif
         let responseText = await generateWithFallback(prompt, imagePart);
 
         console.log("LOG INTERNE (BRUT):", responseText);
