@@ -2,18 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialisation du moteur interne (v0.1.4)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const apiKey = process.env.GEMINI_API_KEY || "";
+const genAI = new GoogleGenerativeAI(apiKey);
 
+// Expanded list of models, prioritizing stable versions and specific tags
 const MODELS = [
   "gemini-1.5-flash",
-  "gemini-1.5-flash-latest",
+  "gemini-1.5-flash-001",
+  "gemini-1.5-flash-002",
   "gemini-1.5-pro",
-  "gemini-1.5-pro-latest",
+  "gemini-1.5-pro-001",
+  "gemini-1.5-pro-002",
   "gemini-2.0-flash-exp",
-  "gemini-1.5-flash-8b",
-  "gemini-pro",
-  "gemini-1.0-pro"
+  "gemini-pro"
 ];
+
+// API Versions to try
+const API_VERSIONS = ["v1beta", "v1"];
 
 export async function POST(req: NextRequest) {
     try {
@@ -54,48 +59,76 @@ export async function POST(req: NextRequest) {
 
         console.log("--- SCAN VIBRATOIRE v0.1.4 ---");
 
+        // Log masked API Key for debugging
+        if (apiKey) {
+            console.log(`Clé API chargée: ${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)} (Longueur: ${apiKey.length})`);
+        } else {
+            console.error("ERREUR CRITIQUE: Clé API manquante ou vide!");
+            return NextResponse.json(
+                { error: "Le modèle cosmique est introuvable. Vérifie ta clé API (Gemini 1.5 Flash). 🔮" },
+                { status: 500 }
+            );
+        }
+
         let result = null;
-        let errorDetails = null;
+        let lastErrorDetails = null;
 
-        // Fallback strategy loop
+        // Fallback strategy loop: Try each model with each API version
+        outerLoop:
         for (const modelName of MODELS) {
-            try {
-                console.log(`Tentative avec le modèle: ${modelName}`);
-                const model = genAI.getGenerativeModel({ model: modelName });
-                result = await model.generateContent([prompt, imagePart]);
+            for (const apiVersion of API_VERSIONS) {
+                try {
+                    console.log(`Tentative avec le modèle: ${modelName} (API: ${apiVersion})`);
 
-                // If successful, break the loop
-                break;
-            } catch (error: any) {
-                console.error(`Échec avec le modèle ${modelName}:`, error.message);
-                errorDetails = error;
+                    // Create model instance with specific API version (requires separate config object for v1beta if default, but we can pass it explicitly)
+                    // Note: GoogleGenerativeAI instantiation doesn't take version, getGenerativeModel does via second argument if supported by SDK version,
+                    // or via RequestOptions if using older SDK. Checking SDK @google/generative-ai, it supports passing RequestOptions as second arg to generateContent?
+                    // Actually, getGenerativeModel takes modelParams and requestOptions.
+                    // modelParams includes model name. requestOptions includes apiVersion.
 
-                // Continue to next model on 404 or other errors
-                continue;
+                    const model = genAI.getGenerativeModel({ model: modelName }, { apiVersion });
+                    result = await model.generateContent([prompt, imagePart]);
+
+                    console.log(`SUCCÈS avec le modèle: ${modelName} (API: ${apiVersion})`);
+                    // If successful, break all loops
+                    break outerLoop;
+                } catch (error: any) {
+                    // Only log 404s as warnings, others as errors if needed
+                    if (error.status === 404 || error.message?.includes("404") || error.message?.includes("not found")) {
+                        console.warn(`Échec (404) avec ${modelName} (${apiVersion}):`, error.message);
+                    } else {
+                        console.error(`Échec (${error.status || 'unknown'}) avec ${modelName} (${apiVersion}):`, error.message);
+                    }
+                    lastErrorDetails = error;
+
+                    // Continue to next version/model
+                    continue;
+                }
             }
         }
 
         if (!result) {
-            console.error("Tous les modèles ont échoué.");
+            console.error("Tous les modèles et versions ont échoué.");
 
-            // Diagnostic: List available models to help debug why the configured models are failing
+            // Diagnostic: List available models via REST API v1beta
             try {
-                const apiKey = process.env.GEMINI_API_KEY;
-                if (apiKey) {
-                    const listModelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-                    const response = await fetch(listModelsUrl);
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log("Modèles disponibles pour cette clé API:", JSON.stringify(data, null, 2));
-                    } else {
-                        console.error("Impossible de lister les modèles via API REST:", response.status, response.statusText);
-                    }
+                const listModelsUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
+                console.log(`Tentative de listing des modèles via: ${listModelsUrl.replace(apiKey, "HIDDEN")}`);
+
+                const response = await fetch(listModelsUrl);
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log("Modèles disponibles (REST API v1beta):", JSON.stringify(data, null, 2));
+                } else {
+                    console.error("Impossible de lister les modèles via API REST:", response.status, response.statusText);
+                    const errorText = await response.text();
+                    console.error("Détails erreur REST:", errorText);
                 }
             } catch (listError) {
                 console.error("Erreur lors de la récupération de la liste des modèles:", listError);
             }
 
-            throw errorDetails || new Error("Tous les modèles sont inaccessibles.");
+            throw lastErrorDetails || new Error("Tous les modèles sont inaccessibles.");
         }
 
         const response = await result.response;
