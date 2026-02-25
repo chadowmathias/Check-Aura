@@ -3,8 +3,8 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialisation du moteur interne (Revert 1.5 pour bypass quota 2.0)
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
-// Utilisation explicite de 'gemini-1.5-flash-001' pour éviter les erreurs 404 sur les alias génériques ou instables
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-001" });
+// Utilisation explicite de 'gemini-1.5-flash-002' car les alias génériques (1.5-flash, 1.5-flash-latest) causent des erreurs 404
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-002" });
 
 export async function POST(req: NextRequest) {
     try {
