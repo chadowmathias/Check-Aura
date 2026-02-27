@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Upload, Sparkles, Download, Share2, Crown } from 'lucide-react';
 import Loading from '@/components/Loading';
 import PremiumModal from '@/components/PremiumModal';
 import { toPng } from 'html-to-image';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const AURA_PHRASES = [
   { min: -10000, max: -5000, text: "Aura en chute libre. Vibe de PNJ buggé, reste couché aujourd'hui." },
@@ -15,7 +16,7 @@ const AURA_PHRASES = [
   { min: 8001, max: 10000, text: "AURA LÉGENDAIRE. T'es le boss final du jeu, respect." }
 ];
 
-export default function Home() {
+function HomeContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<null | {
     color: string;
@@ -24,7 +25,30 @@ export default function Home() {
   }>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPremiumModalOpen, setIsPremiumModalOpen] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [paymentToast, setPaymentToast] = useState<string | null>(null);
+
   const cardRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Payment Success Handling
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment');
+
+    if (paymentStatus === 'success') {
+      setIsPremium(true);
+      setPaymentToast("Paiement réussi ! Ton Aura est maintenant débloquée en HD. ✨");
+      // Clean URL
+      router.replace('/');
+
+      // Auto-hide toast after 5s
+      setTimeout(() => setPaymentToast(null), 5000);
+    } else if (paymentStatus === 'cancelled') {
+      setPaymentToast("Paiement annulé. Les esprits t'attendent. 🔮");
+      setTimeout(() => setPaymentToast(null), 5000);
+    }
+  }, [searchParams, router]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -99,16 +123,19 @@ export default function Home() {
     try {
       // Small delay to ensure styles are applied
       await new Promise(resolve => setTimeout(resolve, 300));
+
+      const pixelRatio = isPremium ? 3 : 2; // Higher quality for premium
+
       const dataUrl = await toPng(cardRef.current, {
         cacheBust: true,
         backgroundColor: '#09090b',
-        pixelRatio: 2,
+        pixelRatio: pixelRatio,
         style: {
           transform: 'scale(1)',
         }
       });
       const link = document.createElement('a');
-      link.download = `aura-check-${Date.now()}.png`;
+      link.download = `aura-check-${isPremium ? 'HD' : 'Lite'}-${Date.now()}.png`;
       link.href = dataUrl;
       link.click();
     } catch (err) {
@@ -144,6 +171,21 @@ export default function Home() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-4 py-8 text-center bg-zinc-950 relative overflow-x-hidden">
       <PremiumModal isOpen={isPremiumModalOpen} onClose={() => setIsPremiumModalOpen(false)} />
+
+      {/* Payment Toast */}
+      <AnimatePresence>
+        {paymentToast && (
+            <motion.div
+                initial={{ opacity: 0, y: -50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -50 }}
+                className="fixed top-10 z-[200] px-6 py-4 bg-yellow-500 text-black font-bold rounded-full shadow-2xl flex items-center gap-3"
+            >
+                <Sparkles className="w-5 h-5 fill-black" />
+                {paymentToast}
+            </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Decorative Glows */}
       <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-aura-purple/10 blur-[120px] rounded-full pointer-events-none z-0" />
@@ -210,12 +252,14 @@ export default function Home() {
           <div ref={cardRef} className="relative w-[340px] aspect-[9/16] rounded-[3rem] bg-zinc-950 overflow-hidden flex flex-col p-8 border border-white/5 shadow-2xl">
             <div className={`absolute top-0 left-0 w-full h-1/2 opacity-20 bg-gradient-to-b ${getAuraColorClasses(result.color)}`} />
 
-            {/* Anti-Capture Watermark (New) */}
-            <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none overflow-hidden">
-              <span className="text-white/20 text-4xl font-black uppercase tracking-widest rotate-[-45deg] whitespace-nowrap">
-                AuraCheck.app AuraCheck.app AuraCheck.app
-              </span>
-            </div>
+            {/* Anti-Capture Watermark (Conditional) */}
+            {!isPremium && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none overflow-hidden">
+                <span className="text-white/20 text-4xl font-black uppercase tracking-widest rotate-[-45deg] whitespace-nowrap">
+                    AuraCheck.app AuraCheck.app AuraCheck.app
+                </span>
+                </div>
+            )}
 
             <div className="relative z-10 mb-8 flex flex-col items-center gap-1">
               <span className="text-[8px] tracking-[0.5em] font-mono text-zinc-500 uppercase">Aura Assessment</span>
@@ -265,16 +309,18 @@ export default function Home() {
               className="w-full flex items-center justify-center gap-3 py-5 bg-white text-black font-black rounded-3xl hover:bg-zinc-200 transition-all uppercase tracking-tighter shadow-xl"
             >
               <Download className="w-5 h-5" />
-              <span>📥 Télécharger (Gratuit)</span>
+              <span>{isPremium ? "📥 Télécharger HD" : "📥 Télécharger (Gratuit)"}</span>
             </button>
 
-            <button
-              onClick={() => setIsPremiumModalOpen(true)}
-              className="w-full flex items-center justify-center gap-3 py-5 bg-zinc-900 border-2 border-yellow-500/50 text-yellow-500 font-bold rounded-3xl hover:bg-zinc-800 transition-all uppercase tracking-tighter text-sm shadow-[0_0_20px_rgba(234,179,8,0.1)] group"
-            >
-              <Crown className="w-5 h-5 group-hover:scale-110 transition-transform" />
-              <span>✨ Enlever filigrane & HD</span>
-            </button>
+            {!isPremium && (
+                <button
+                onClick={() => setIsPremiumModalOpen(true)}
+                className="w-full flex items-center justify-center gap-3 py-5 bg-zinc-900 border-2 border-yellow-500/50 text-yellow-500 font-bold rounded-3xl hover:bg-zinc-800 transition-all uppercase tracking-tighter text-sm shadow-[0_0_20px_rgba(234,179,8,0.1)] group"
+                >
+                <Crown className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                <span>✨ Enlever filigrane & HD</span>
+                </button>
+            )}
 
             <button
               onClick={() => setResult(null)}
@@ -303,5 +349,13 @@ export default function Home() {
         </motion.div>
       )}
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <HomeContent />
+    </Suspense>
   );
 }
