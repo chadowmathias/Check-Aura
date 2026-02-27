@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -27,6 +28,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-950 text-white selection:bg-aura-purple/30`}
       >
+        {/* Monetag Push Notification Script */}
+        <Script
+          src="https://5gvci.com/act/files/tag.min.js?z=10661457"
+          strategy="afterInteractive"
+          data-cfasync="false"
+          async
+        />
+
         <main className="min-h-screen relative overflow-hidden">
           {children}
         </main>

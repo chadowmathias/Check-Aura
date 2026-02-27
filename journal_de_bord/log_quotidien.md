@@ -14,3 +14,7 @@
 - **Déploiement** : Code complet poussé sur GitHub (repository origin).
 - **Marque Blanche** : Suppression des mentions techniques (Gemini, OpenAI), erreurs mystiques et versioning (`AuraCheck v0.1.0`).
 - **REFONTE v0.1.4** : Correction bug "infinite loop" API, pivot phrase-logic vers le frontend, prompt IA simplifié (vitesse), et UI résultat overhaulée (Score GÉANT, Image entière).
+- **CORRECTIF CRITIQUE** : Implémentation d'une stratégie de "Smart Fallback" pour l'API Gemini (découverte automatique des modèles via REST) afin de résoudre les erreurs 404 persistantes.
+- **ÉTAPE 5 - MONÉTISATION** : Intégration complète de Stripe Checkout. Création de la route API `/api/checkout` et mise à jour du frontend pour gérer le paiement Premium (suppression filigrane, téléchargement HD).
+- **ÉTAPE 6 - PUBLICITÉ** : Implémentation du "Mur Publicitaire" (Time-locked Ad Wall). Création de `AdModal.tsx` avec un timer de 30 secondes pour débloquer l'option Premium gratuitement en regardant une pub.
+- **MONÉTISATION AVANCÉE** : Intégration des notifications push Monetag via `next/script` dans le layout principal.
