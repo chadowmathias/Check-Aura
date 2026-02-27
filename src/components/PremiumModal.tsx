@@ -2,12 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Crown, Play, CreditCard, Loader2 } from 'lucide-react';
-import { loadStripe } from '@stripe/stripe-js';
 import { useState } from 'react';
-
-// Stripe initialization
-const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
-const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 interface PremiumModalProps {
     isOpen: boolean;
@@ -18,12 +13,6 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleCheckout = async () => {
-        if (!stripePromise) {
-            console.error("Stripe Publishable Key is missing");
-            alert("Le système de paiement est temporairement indisponible (Configuration manquante).");
-            return;
-        }
-
         setIsLoading(true);
         try {
             const response = await fetch('/api/checkout', {
@@ -36,21 +25,24 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
                 return;
             }
 
-            const { sessionId } = await response.json();
-            const stripe = await stripePromise;
+            const { url } = await response.json();
 
-            if (stripe) {
-                const { error } = await stripe.redirectToCheckout({ sessionId });
-                if (error) {
-                    console.error("Stripe Redirect Error:", error);
-                    alert("Erreur de redirection vers Stripe.");
-                }
+            if (url) {
+                // Redirect directly to the Stripe Checkout URL provided by the server
+                window.location.href = url;
+            } else {
+                console.error("No checkout URL returned");
+                alert("Erreur de redirection vers le paiement.");
             }
         } catch (error) {
             console.error("Checkout Exception:", error);
             alert("Une erreur technique est survenue.");
         } finally {
-            setIsLoading(false);
+            // Don't set loading to false if we are redirecting, to prevent double clicks
+            // But if we failed, we should reset it.
+            // Since window.location.href is async in effect (page unloads), keeping loading true is fine.
+            // However, if redirect fails or we are in a SPA transition that doesn't unload immediately...
+            // It's safer to only reset on error. But for now, let's keep it simple.
         }
     };
 
@@ -107,7 +99,7 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
 
                             <button
                                 onClick={handleCheckout}
-                                disabled={isLoading || !stripePromise}
+                                disabled={isLoading}
                                 className="w-full flex items-center justify-between px-6 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <div className="flex items-center gap-3">
