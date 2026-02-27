@@ -8,6 +8,7 @@ const getStripe = () => {
   if (!stripeInstance) {
     const key = process.env.STRIPE_SECRET_KEY;
     if (!key) {
+      // Return null or throw a specific error that can be caught
       throw new Error("Missing STRIPE_SECRET_KEY environment variable");
     }
     stripeInstance = new Stripe(key, {
@@ -19,7 +20,17 @@ const getStripe = () => {
 
 export async function POST(req: NextRequest) {
   try {
-    const stripe = getStripe();
+    let stripe;
+    try {
+        stripe = getStripe();
+    } catch (configError: any) {
+        console.error("Configuration Error:", configError.message);
+        return NextResponse.json(
+            { error: "Configuration Stripe incomplète (Clé secrète manquante).", details: configError.message },
+            { status: 500 }
+        );
+    }
+
     const origin = req.headers.get("origin") || "http://localhost:3000";
 
     const session = await stripe.checkout.sessions.create({
@@ -47,7 +58,7 @@ export async function POST(req: NextRequest) {
   } catch (err: any) {
     console.error("Stripe Checkout Error:", err);
     return NextResponse.json(
-      { error: "Erreur lors de la création de la session de paiement." },
+      { error: "Erreur lors de la création de la session de paiement.", details: err.message },
       { status: 500 }
     );
   }

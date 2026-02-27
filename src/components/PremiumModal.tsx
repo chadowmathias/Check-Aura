@@ -13,6 +13,14 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleCheckout = async () => {
+        // Simple check for the publishable key
+        // This is not strict because the actual redirect is handled by server-side response
+        // But it helps diagnose client config issues.
+        const hasPublicKey = !!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+        if (!hasPublicKey) {
+            console.warn("NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is likely missing, but proceeding with checkout initialization...");
+        }
+
         setIsLoading(true);
         try {
             const response = await fetch('/api/checkout', {
@@ -20,8 +28,15 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
             });
 
             if (!response.ok) {
-                console.error("Erreur API Checkout");
-                alert("Une erreur est survenue lors de l'initialisation du paiement.");
+                const errorData = await response.json();
+                console.error("Erreur API Checkout:", errorData);
+
+                // Show specific error if available
+                if (errorData.error) {
+                    alert(`Erreur: ${errorData.error}`);
+                } else {
+                    alert("Une erreur est survenue lors de l'initialisation du paiement.");
+                }
                 return;
             }
 
@@ -38,11 +53,7 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
             console.error("Checkout Exception:", error);
             alert("Une erreur technique est survenue.");
         } finally {
-            // Don't set loading to false if we are redirecting, to prevent double clicks
-            // But if we failed, we should reset it.
-            // Since window.location.href is async in effect (page unloads), keeping loading true is fine.
-            // However, if redirect fails or we are in a SPA transition that doesn't unload immediately...
-            // It's safer to only reset on error. But for now, let's keep it simple.
+            // Keep loading true if redirecting
         }
     };
 
