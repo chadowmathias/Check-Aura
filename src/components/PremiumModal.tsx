@@ -5,8 +5,9 @@ import { X, Crown, Play, CreditCard, Loader2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { useState } from 'react';
 
-// Make sure to add NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY to your .env
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+// Stripe initialization
+const stripeKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+const stripePromise = stripeKey ? loadStripe(stripeKey) : null;
 
 interface PremiumModalProps {
     isOpen: boolean;
@@ -17,6 +18,12 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
     const [isLoading, setIsLoading] = useState(false);
 
     const handleCheckout = async () => {
+        if (!stripePromise) {
+            console.error("Stripe Publishable Key is missing");
+            alert("Le système de paiement est temporairement indisponible (Configuration manquante).");
+            return;
+        }
+
         setIsLoading(true);
         try {
             const response = await fetch('/api/checkout', {
@@ -100,7 +107,7 @@ export default function PremiumModal({ isOpen, onClose }: PremiumModalProps) {
 
                             <button
                                 onClick={handleCheckout}
-                                disabled={isLoading}
+                                disabled={isLoading || !stripePromise}
                                 className="w-full flex items-center justify-between px-6 py-4 bg-white/5 border border-white/10 text-white font-bold rounded-2xl hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 <div className="flex items-center gap-3">
